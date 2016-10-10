@@ -2,6 +2,8 @@ import requests
 import datetime
 import ConfigParser
 import logging
+import sys
+from prettytable import PrettyTable
 
 
 def get_projects():
@@ -25,12 +27,15 @@ def get_mergerequests(project_id, state=None):
         :return: List with all the merge requests
         """
     data = dict(
-        per_page=200,
+        per_page=20,
         private_token=private_token,
         state=state
     )
     resp = requests.get('{0}/{1}/merge_requests'.format(projects_url, project_id), params=data)
-    return resp.status_code, resp.json(), resp.text
+    if resp.status_code == 200:
+        return resp.json()
+    else:
+        raise Exception(resp.status_code, resp.text)
 
 
 def get_mergerequest_commits(project_id, mergerequest_id):
@@ -69,9 +74,10 @@ def create_mergerequest(project_id, source_branch, target_branch, title):
     )
     resp = requests.post('{0}/{1}/merge_requests'.format(projects_url, project_id), params=data)
     if resp.status_code == 201:
+        logging.info('New merge request created, project={0}'.format(project_id))
         return resp.json()
     else:
-        return str(resp.status_code) + ' ' + resp.text
+        raise Exception('create merge request failed', str(resp.status_code), resp.text, title)
 
 
 def accept_mergerequest(project_id, mergerequest_id):
@@ -88,27 +94,29 @@ def accept_mergerequest(project_id, mergerequest_id):
     resp = requests.put('{0}/{1}/merge_request/{2}/merge'.format(projects_url, project_id, mergerequest_id),
                         params=data)
     if resp.status_code == 200:
+        logging.info('merge request accepted, name={0}'.format(mergerequest_title))
         return resp.json()
     else:
-        return str(resp.status_code) + ' ' + resp.text
+        raise Exception('accept merge request failed', str(resp.status_code), resp.text)
 
 
 logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s---%(message)s',
+                    format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
                     filename='gitlab_util.log',
                     filemode='a')
 
+logging.getLogger("requests").setLevel(logging.WARNING)
+
 # Print log to console
 console = logging.StreamHandler()
-console.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s---%(message)s')
+console.setLevel(logging.WARNING)
+formatter = logging.Formatter('%(asctime)s %(filename)s [line:%(lineno)d] %(levelname)s %(message)s')
 console.setFormatter(formatter)
 logging.getLogger('').addHandler(console)
 
-#*******************************   read configuration start ********************************
 config = ConfigParser.ConfigParser()
-config.read('gitlab_config.conf')
+config.read('gitlab_util.conf')
 
 merge_type = 'dev-to-test'
 gitlab_host = config.get('common', 'gitlab_host').rstrip('/')
@@ -117,33 +125,70 @@ source_branch = config.get(merge_type, 'source_branch')
 target_branch = config.get(merge_type, 'target_branch')
 project_list = config.get(merge_type, 'project_list').split(',')
 
-
-#*******************************   read configuration end ********************************
-
 projects_url = gitlab_host + '/api/v3/projects'
 
-project_id = 67
-project_name = 'agz-business'
+project_dict = {'agz-business': 67, 'agz-web-design': 64, 'agz-web-runtime': 65, 'agzplatform': 124,
+                'agzSystemRuntime': 75, 'agz-message': 126, 'glossary': 114}
 
-# Get all opened merge request for specific project
-status_code, mergerequest_list, err_msg = get_mergerequests(project_id, state='opened')
-if status_code == 200:
-    if mergerequest_list:
-        for i in mergerequest_list:
-            if i['source_branch'] == source_branch and i['target_branch'] == target_branch \
-                    and i['merge_status'] == 'can_be_merged':
-                print accept_mergerequest(project_id, i['id'])
-            else:
-                logging.info('skip merge due to merge status {0}, project_name={1}'\
-                             .format(i['merge_status'], project_name))
+# Configure prettytable for human readable
+result_table = PrettyTable(["Project name", "Merge request", "Merge request type", "Number of commits", "Merge status"])
+result_table.align["Project name"] = "l"  # Left align city names
+result_table.padding_width = 1  # One space between column edges and contents (default)
 
-    else:
-        now = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-        data = create_mergerequest(project_id, source_branch, target_branch, title=project_name + '_' + now)
-        if data['merge_status'] == 'can_be_merged':
-            print accept_mergerequest(project_id, data['id'])
+mergerequest_to_be_merged = []
+
+for project_name in project_list:
+    project_id = project_dict[project_name]
+
+    logging.info("Start process merge request for {0}".format(project_name))
+
+    try:
+        # Check if there is any legacy merge request
+        legacy_mergerequest_list = get_mergerequests(project_id, state='opened')
+        if legacy_mergerequest_list:
+            for i in legacy_mergerequest_list:
+                if i['source_branch'] == source_branch and i['target_branch'] == target_branch:
+                    mergerequest_title = i['title']
+                    mergerequest_id = i['id']
+                    mergerequest_status = i['merge_status']
+                    mergerequest_type = 'legacy'
+                    logging.info('Legacy merge request found, name={0}, merge_status={1}'
+                                 .format(mergerequest_title, mergerequest_status))
+                    mergerequest_to_be_merged.append(
+                        dict(project_id=project_id, mergerequest_title=mergerequest_title, mergerequest_id=mergerequest_id,
+                             mergerequest_status=mergerequest_status, mergerequest_type=mergerequest_type))
+        # No legacy merge request, create new merge request
         else:
-            print data['merge_status']
-else:
-    logging.warning("Get merge request failed, project_name={0}, status_code={1}, err_msg={2}"\
-                    .format(project_name, str(status_code), err_msg))
+            cur_time = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+            mergerequest_title = project_name + '_' + cur_time
+            data = create_mergerequest(project_id, source_branch, target_branch, title=mergerequest_title)
+            mergerequest_id = data['id']
+            mergerequest_status = data['status']
+            mergerequest_type = 'new'
+            mergerequest_to_be_merged.append(
+                dict(project_id=project_id, mergerequest_title=mergerequest_title, mergerequest_id=mergerequest_id,
+                     mergerequest_status=mergerequest_status, mergerequest_type=mergerequest_type))
+    except Exception as e:
+        print sys.exc_info()
+
+# Process collected merge request
+for mr in mergerequest_to_be_merged:
+    project_id=mr['project_id']
+    mergerequest_id = mr['mergerequest_id']
+    mergerequest_title = mr['mergerequest_title']
+    mergerequest_status = mr['mergerequest_status']
+    mergerequest_type = mr['mergerequest_type']
+
+    num_of_commits = len(get_mergerequest_commits(project_id, mergerequest_id))
+
+    if num_of_commits:
+        if mergerequest_status == "cannot_be_merged":
+            result_table.add_row([project_name, mergerequest_title, mergerequest_type, num_of_commits, mergerequest_status])
+            continue
+        accept_mergerequest(project_id, mergerequest_id)
+        result_table.add_row([project_name, mergerequest_title, mergerequest_type, num_of_commits, "merged"])
+    else:
+        logging.info('No commits for {0}, skipped auto accept'.format(mergerequest_title))
+        result_table.add_row([project_name, mergerequest_title, mergerequest_type, num_of_commits, 'skipped'])
+
+print result_table

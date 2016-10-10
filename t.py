@@ -1,15 +1,14 @@
 import datetime
 
+def ex_tefdasfst():
+
+    raise Exception("dfa")
+
 now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-print now
 
 
-
-def two_return_test():
-    a = 1
-    b = 2
-    return a,b
-
-c, d = two_return_test()
-print c, d
+try:
+    ex_tefdasfst()
+except Exception as e:
+    print e
