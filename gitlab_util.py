@@ -187,7 +187,7 @@ project_dict = {'agz-business': 67, 'agz-web-design': 64, 'agz-web-runtime': 65,
                 'ht_util': 33, 'agz-cache': 69,'agz-curator': 96,'agz-dbaccess': 48,
                 'agz-dubbo-proxy': 68, 'agz-business-api':66, 'agz-tree':119}
 
-# Configure pretty table for human readable
+#Configure pretty table for human readable
 result_table = PrettyTable(["Project name", "Merge request", "Merge request type", "Number of commits", "Merge status"])
 result_table.align["Project name"] = "l"  # Left align city names
 result_table.padding_width = 1  # One space between column edges and contents (default)
@@ -241,5 +241,5 @@ for project_name in project_list:
         logging.info('No commits for {0}, auto merge skipped'.format(mergerequest_title))
         result_table.add_row([project_name, mergerequest_title, mergerequest_type, num_of_commits, 'skipped'])
 
-logging.info(result_table+"\n\n")
+logging.info(result_table)
 print result_table
