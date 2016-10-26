@@ -65,10 +65,10 @@ target_branch = raw_input("Please enter branch name for building the tag (test|m
 while target_branch != 'test' and target_branch != "master":
     target_branch = raw_input("Please enter branch name for building the tag (test|master): ")
 
-tag = raw_input("Please enter the tag name, start with v:")
+tag = raw_input("Please enter the tag name, start with v: ")
 
 while not tag.startswith("v"):
-    target_branch = raw_input("Please enter the tag name, tag name should start with v:  ")
+    target_branch = raw_input("Please enter the tag name, tag name should start with v: ")
 
 # if input tag exists in any project, then abort the tag create process
 for project_name, project_id in project_dict.items():
