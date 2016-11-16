@@ -50,7 +50,7 @@ def create_tag(project_id, tag):
 project_dict = {'agz-business': 67, 'agz-web-design': 64, 'agz-web-runtime': 65, 'agzplatform': 124,
                 'agzSystemRuntime': 75, 'agz-message': 126, 'glossary': 114, 'agz-reportsql':130,
                 'ht_util': 33, 'agz-cache': 69,'agz-curator': 96,'agz-dbaccess': 48,
-                'agz-dubbo-proxy': 68, 'agz-business-api':66, 'agz-tree':119}
+                'agz-dubbo-proxy': 68, 'agz-business-api':66, 'agz-tree':119, 'agz-bo':145}
 
 # Get basic configurations
 config = ConfigParser.ConfigParser()

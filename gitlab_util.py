@@ -185,9 +185,9 @@ projects_url = gitlab_host + '/api/v3/projects'
 project_dict = {'agz-business': 67, 'agz-web-design': 64, 'agz-web-runtime': 65, 'agzplatform': 124,
                 'agzSystemRuntime': 75, 'agz-message': 126, 'glossary': 114, 'agz-reportsql':130,
                 'ht_util': 33, 'agz-cache': 69,'agz-curator': 96,'agz-dbaccess': 48,
-                'agz-dubbo-proxy': 68, 'agz-business-api':66, 'agz-tree':119}
+                'agz-dubbo-proxy': 68, 'agz-business-api':66, 'agz-tree':119, 'agz-bo':145}
 
-#Configure pretty table for human readable
+# Configure pretty table for human readable
 result_table = PrettyTable(["Project name", "Merge request", "Merge request type", "Number of commits", "Merge status"])
 result_table.align["Project name"] = "l"  # Left align city names
 result_table.padding_width = 1  # One space between column edges and contents (default)
