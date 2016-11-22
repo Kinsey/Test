@@ -11,6 +11,7 @@ def isTagAvailable(project_id, tag):
     """verify if tag already exists in project
 
     :param project_id: ID of the project originating the merge request
+    :param tag: tag to be created
     :return:
     """
     params = dict(
@@ -29,16 +30,23 @@ def isTagAvailable(project_id, tag):
         print resp.text + " project_name=" + project_name + " response_code=" + str(resp.status_code)
         return False
 
-def create_tag(project_id, tag):
+
+def create_tag(project_id, tag, msg, desp):
     """add tag per release
 
     :param project_id: ID of the project originating the merge request
+    :param tag: tag to be create
+    :param msg: msg of tag
+    :param project_id: desc of tag
+
     :return:
     """
     params = dict(
         private_token=private_token,
         ref=target_branch,
-        tag_name=tag
+        tag_name=tag,
+        message=msg,
+        release_description=desp
     )
 
     resp = requests.post('{0}/{1}/repository/tags'.format(projects_url, project_id), params=params)
@@ -70,6 +78,9 @@ tag = raw_input("Please enter the tag name, start with v: ")
 while not tag.startswith("v"):
     target_branch = raw_input("Please enter the tag name, tag name should start with v: ")
 
+message = raw_input("Please enter the message: ")
+release_description = raw_input("Please enter the release description: ")
+
 # if input tag exists in any project, then abort the tag create process
 for project_name, project_id in project_dict.items():
     if not isTagAvailable(project_id, tag):
@@ -86,5 +97,5 @@ if add_tag:
         exit()
 
     for project_name, project_id in project_dict.items():
-        create_tag(project_id, tag)
+        create_tag(project_id, tag, message, release_description)
 
