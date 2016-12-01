@@ -8,10 +8,3 @@ def ask_for_confirmation():
         print "exit due to user quit"
         exit()
 
-
-def read_configuration(config_file_path):
-    config = ConfigParser.ConfigParser()
-    config.read(config_file_path)
-    gitlab_host = config.get('common', 'gitlab_host').rstrip('/')
-    private_token = config.get('common', 'private_token')
-    projects_url = gitlab_host + '/api/v3/projects'
