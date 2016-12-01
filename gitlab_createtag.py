@@ -1,100 +1,54 @@
 import requests
-import datetime
 import ConfigParser
-import logging
-import sys
-import os
-from prettytable import PrettyTable
-
-def isTagAvailable(project_id, tag):
-    """verify if tag already exists in project
-
-    :param project_id: ID of the project originating the merge request
-    :param tag: tag to be created
-    :return:
-    """
-    params = dict(
-        private_token=private_token,
-        #tag_name=tag
-    )
-
-    resp = requests.get('{0}/{1}/repository/tags/{2}'.format(projects_url, project_id, tag), params=params)
-
-    if resp.status_code == 404:
-        return True
-    elif resp.status_code == 200:
-        print "Tag {0} already exists in {1}".format(tag, project_name)
-        return False
-    else:
-        print resp.text + " project_name=" + project_name + " response_code=" + str(resp.status_code)
-        return False
+import ht_util
+from gitlab import Gitlab
+from models import Tag
 
 
-def create_tag(project_id, tag, msg, desp):
-    """add tag per release
+def get_tag_info():
+    while Tag.ref != 'test' and Tag.ref != "master":
+        Tag.ref = raw_input("Please enter branch name for building the tag (test|master): ")
 
-    :param project_id: ID of the project originating the merge request
-    :param tag: tag to be create
-    :param msg: msg of tag
-    :param project_id: desc of tag
+    while not Tag.name.startswith("v"):
+        Tag.name = raw_input("Please enter tag name, tag name should start with v: ")
 
-    :return:
-    """
-    params = dict(
-        private_token=private_token,
-        ref=target_branch,
-        tag_name=tag,
-        message=msg,
-        release_description=desp
-    )
-
-    resp = requests.post('{0}/{1}/repository/tags'.format(projects_url, project_id), params=params)
-    if resp.status_code == 201:
-        print 'tag added, name={0}, target_branch={1}, project_name={2}'.format(tag, target_branch, project_name)
-    else:
-        print resp.text + " project_name=" + project_name + " response_code=" + str(resp.status_code)
+    Tag.message = raw_input("Please enter tag message: ")
+    Tag.release_desp = raw_input("Please enter the release description: ")
 
 project_dict = {'agz-business': 67, 'agz-web-design': 64, 'agz-web-runtime': 65, 'agzplatform': 124,
-                'agzSystemRuntime': 75, 'agz-message': 126, 'glossary': 114, 'agz-reportsql':130,
-                'ht_util': 33, 'agz-cache': 69,'agz-curator': 96,'agz-dbaccess': 48,
-                'agz-dubbo-proxy': 68, 'agz-business-api':66, 'agz-tree':119, 'agz-bo':145}
+                'agzSystemRuntime': 75, 'agz-message': 126, 'glossary': 114, 'agz-reportsql': 130,
+                'ht_util': 33, 'agz-cache': 69, 'agz-curator': 96, 'agz-dbaccess': 48,
+                'agz-dubbo-proxy': 68, 'agz-business-api': 66, 'agz-tree': 119, 'agz-bo': 145}
 
-# Get basic configurations
 config = ConfigParser.ConfigParser()
 config.read('gitlab_util.conf')
 gitlab_host = config.get('common', 'gitlab_host').rstrip('/')
 private_token = config.get('common', 'private_token')
-projects_url = gitlab_host + '/api/v3/projects'
-add_tag = True
 
-target_branch = raw_input("Please enter branch name for building the tag (test|master): ")
+gitlab = Gitlab(gitlab_host, private_token)
 
-while target_branch != 'test' and target_branch != "master":
-    target_branch = raw_input("Please enter branch name for building the tag (test|master): ")
+get_tag_info()
+tag_exists = False
+tag_create_list = []
 
-tag = raw_input("Please enter the tag name, start with v: ")
-
-while not tag.startswith("v"):
-    target_branch = raw_input("Please enter the tag name, tag name should start with v: ")
-
-message = raw_input("Please enter the message: ")
-release_description = raw_input("Please enter the release description: ")
-
-# if input tag exists in any project, then abort the tag create process
 for project_name, project_id in project_dict.items():
-    if not isTagAvailable(project_id, tag):
-        add_tag = False
+    tag = Tag()
+    tag.prj_id = project_id
+    tag.prj_name = project_name
+    tag_create_list.append(tag)
 
-if add_tag:
-    print "will create tag {0} from branch {1} for following projects: ".format(tag, target_branch)
-    print project_dict.keys()
+    if gitlab.is_tag_exists(tag):
+        tag_exists = True
+        print "tag can not be created at " + project_name
 
-    proceed = raw_input("Is this ok? [yes/no]: ")
-    if proceed != "yes":
-        print "exit due to user quit"
-        logging.info("exit due to user quit")
-        exit()
+if tag_exists:
+    raise SystemExit("Tag can not be created")
 
-    for project_name, project_id in project_dict.items():
-        create_tag(project_id, tag, message, release_description)
+print "Will create tag [{0}] on branch [{1}] for following projects: \n{2} "\
+                        .format(tag.name, tag.ref, project_dict.keys())
+
+ht_util.ask_for_confirmation()
+
+for tag in tag_create_list:
+    gitlab.create_tag(tag)
 
