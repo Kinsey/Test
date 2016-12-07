@@ -10,9 +10,11 @@
       <w>mergerequest</w>
       <w>mergerequests</w>
       <w>mergerquest</w>
+      <w>mongo</w>
       <w>mycat</w>
       <w>reportsql</w>
       <w>stdin</w>
+      <w>xargs</w>
     </words>
   </dictionary>
 </component>
