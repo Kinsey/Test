@@ -84,7 +84,7 @@ drop_mysql_databases () {
 }
 
 
-import_mysql_data() {
+import_mysql_data () {
   echo -n "importing mysql data..."
 
   sed -i '/GLOBAL.GTID_PURGED/d' $workspace/$bak_date.sql
@@ -124,12 +124,12 @@ print_sync_detail () {
 }
 
 prompt_for_confirmation () {
-	echo -n "Type 'continue' to proceed: "
-	read answer
-	if [ "$answer" != "continue" ];then
- 		echo "exit due to user abort"
-		exit 1
-	fi
+  echo -n "Type 'continue' to proceed: "
+  read answer
+  if [ "$answer" != "continue" ];then
+    echo "exit due to user abort"
+    exit 1
+  fi
   echo ""
 }
 
