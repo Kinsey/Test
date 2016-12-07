@@ -69,7 +69,6 @@ mysql_sync_start () {
   if [ -n "$mysql_update_scripts" ];then
     exec_mysql_update_scripts
   fi
-  
 }
 
 
