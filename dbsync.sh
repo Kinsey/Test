@@ -113,13 +113,13 @@ exec_mysql_update_scripts () {
 
 print_sync_detail () {
   echo "Please confirm following information: "
-  echo ""
+  echo "-----------------------------------------------------------------------"
   echo "mysql_host: $mysql_host"
   echo "mysql_update_scripts: $mysql_update_scripts"
   echo ""
   echo "mongo_host: $mongo_host"
   echo "mongo_update_script: $mongo_update_scripts"
-  echo ""
+  echo "-----------------------------------------------------------------------"
   echo "data_date=$bak_date"
 }
 
@@ -185,5 +185,5 @@ mongo_sync_start
 mysql_sync_start
 
 # flush redis and restart mycat service
-python flush_service.py option="${1}"
+python flush_service.py $option
 
