@@ -10,14 +10,14 @@ def flush_redis(env):
     myclient.exec_command("service redis start")
     time.sleep(2)
     stdin, stdout, stderr = myclient.exec_command("redis-cli flushall")
-    print basic_info[env]['redis_host'] + ": flush redis..." + stdout.read().lower()
+    print basic_info[env]['redis_host'] + ": flushing redis..." + stdout.read().lower()
 
 
 def restart_mycat(env):
     myclient = ssh.SSHClient()
     myclient.set_missing_host_key_policy(ssh.AutoAddPolicy())
     myclient.connect(basic_info[env]['mycat_host'], port=22, username="root", password=basic_info[env]['password'])
-    print "restart mycat..."
+    print "restarting mycat..."
     myclient.exec_command(basic_info[env]['mycat_restart_cmd'])
     time.sleep(2)
     stdin, stdout, stderr = myclient.exec_command(basic_info[env]['mycat_status_cmd'])

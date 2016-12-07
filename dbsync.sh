@@ -184,6 +184,8 @@ prompt_for_confirmation
 mongo_sync_start
 mysql_sync_start
 
+echo ""
+
 # flush redis and restart mycat service
 python flush_service.py $option
 
