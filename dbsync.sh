@@ -119,8 +119,9 @@ print_sync_detail () {
   echo ""
   echo "mongo_host: $mongo_host"
   echo "mongo_update_script: $mongo_update_scripts"
-  echo "-----------------------------------------------------------------------"
+  echo ""
   echo "data_date=$bak_date"
+  echo "-----------------------------------------------------------------------"
 }
 
 prompt_for_confirmation () {
