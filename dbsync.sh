@@ -13,7 +13,10 @@ sync_init () {
   mysql_init
 }
 
+
 mongo_init () {
+  mongo_port=27017
+
   mongo_cmd='/root/mongodb/bin/mongo'
   mongorestore_cmd='/root/mongodb/bin/mongorestore'
 
@@ -22,6 +25,7 @@ mongo_init () {
 
   mongo_update_scripts=`find update_scripts -name '*.js' -printf '%f\n' | sort | xargs `
 }
+
 
 mysql_init () {
   mysql_user='root'
@@ -48,13 +52,9 @@ uncompress_file_to_workspace () {
 }
 
 
-mongo_sync_start () {
-  mongo_port=27017
+drop_and_update_mongo () {
   import_mongo_data
-
-  if [ -n "$mongo_update_scripts" ];then
-    exec_mongo_update_scripts
-  fi
+  exec_mongo_update_scripts
 }
 
 
@@ -68,28 +68,23 @@ import_mongo_data () {
 
 
 exec_mongo_update_scripts () {
-  for script in $mongo_update_scripts
-  do
-    echo -n "executing $script..."
-    cmd="$mongo_cmd --quiet $mongo_host:$mongo_port/component update_scripts/$script"
-    `$cmd`
-    check_status
-  done
+  if [ -n "$mongo_update_scripts" ];then
+    for script in $mongo_update_scripts
+    do
+        echo -n "executing $script..."
+        cmd="$mongo_cmd --quiet $mongo_host:$mongo_port/component update_scripts/$script"
+        `$cmd`
+        check_status
+    done
+  fi
 }
 
 
-mysql_sync_start () {
+drop_and_update_mysql () {
   drop_mysql_databases
   import_mysql_data
-
-  if [ -n "$mysql_update_scripts" ];then
-    exec_mysql_update_scripts
-  fi
-
-  echo ""
-
-  # flush redis and restart mycat service
-  python flush_service.py $option
+  exec_mysql_update_scripts
+  flush_service
 }
 
 
@@ -119,32 +114,51 @@ import_mysql_data () {
 
 
 exec_mysql_update_scripts () {
-  for script in $mysql_update_scripts
-  do
-    cmd="$mysql_cmd 'source update_scripts/$script'"
-     
-    echo -n "executing $script..."   
-    $mysql_cmd "source update_scripts/$script"
+  if [ -n "$mysql_update_scripts" ];then
+    for script in $mysql_update_scripts
+    do
+        cmd="$mysql_cmd 'source update_scripts/$script'"
 
-    check_status
-  done
+        echo -n "executing $script..."
+        $mysql_cmd "source update_scripts/$script"
+
+        check_status
+    done
+  fi
+}
+
+
+flush_service () {
+  # flush redis and restart mycat service
+  python flush_service.py $option
 }
 
 
 print_sync_detail () {
   echo "Please confirm following information: "
   echo "-----------------------------------------------------------------------"
-  echo "mysql_host: $mysql_host"
-  echo "mysql_update_scripts: $mysql_update_scripts"
+  echo "run_type: $run_type"
   echo ""
-  echo "mongo_host: $mongo_host"
-  echo "mongo_update_script: $mongo_update_scripts"
-  echo ""
+
+  if [ $run_type = 'drop_and_update_all' -o $run_type = 'drop_and_update_mysql' -o $run_type = 'update_mysql' ];then
+    echo "mysql_host: $mysql_host"
+    echo "mysql_update_scripts: $mysql_update_scripts"
+    echo ""
+  fi
+
+  if [ $run_type = 'drop_and_update_all' -o $run_type = 'drop_and_update_mongo' -o $run_type = 'update_mongo' ];then
+    echo "mongo_host: $mongo_host"
+    echo "mongo_update_script: $mongo_update_scripts"
+    echo ""
+  fi
+
   echo "data_date=$bak_date"
   echo "-----------------------------------------------------------------------"
 }
 
+
 prompt_for_confirmation () {
+  print_sync_detail
   echo -n "Type 'continue' to proceed: "
   read answer
   if [ "$answer" != "continue" ];then
@@ -153,6 +167,7 @@ prompt_for_confirmation () {
   fi
   echo ""
 }
+
 
 check_status () {
   if [ $? -eq 0 ];then
@@ -163,7 +178,22 @@ check_status () {
   fi    
 }
 
+
+show_usage () {
+    echo "usage: `basename ${0}` (dev01|tev02|lb01|cp01|cp02) <run_type>"
+    echo "<run_type> can be"
+    echo "  drop_and_update_all          drop mongo and mysql databases and import"
+    echo "  drop_and_update_mongo        drop mongo data and import"
+    echo "  drop_and_update_mysql        drop mysql data and import"
+    echo "  update_mongo                 execute mongo update scripts only"
+    echo "  update_mysql                 execute mysql update scripts only"
+    echo "  flush_service                restart mycat and flush redis"
+}
+
+
 option="${1}"
+run_type="${2}"
+
 case ${option} in
    dev01) mysql_host="dev01.demo.com"
           mongo_host="dev01.demo.com"
@@ -184,17 +214,40 @@ case ${option} in
           mongo_host="testjk.demo.com"
       ;;
    *)
-      echo "usage: `basename ${0}` [dev01|tev02|lb01|cp01|cp02]"
+      show_usage
       exit 1
       ;;
 esac
 
 sync_init
 
-print_sync_detail
-prompt_for_confirmation
-
-mongo_sync_start
-mysql_sync_start
-
-
+case ${run_type} in
+   drop_and_update_all)
+          prompt_for_confirmation
+          drop_and_update_mongo
+          drop_and_update_mysql
+      ;;
+   drop_and_update_mongo)
+          prompt_for_confirmation
+          drop_and_update_mongo
+      ;;
+   drop_and_update_mysql)
+           prompt_for_confirmation
+           drop_and_update_mysql
+      ;;
+   update_mongo)
+           prompt_for_confirmation
+           exec_mongo_update_scripts
+      ;;
+   update_mysql)
+           prompt_for_confirmation
+           exec_mysql_update_scripts
+      ;;
+   flush_service)
+           flush_service
+      ;;
+   *)
+      show_usage
+      exit 1
+      ;;
+esac

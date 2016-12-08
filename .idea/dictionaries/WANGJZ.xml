@@ -3,7 +3,9 @@
     <words>
       <w>agzplatform</w>
       <w>dbaccess</w>
+      <w>dbsync</w>
       <w>desp</w>
+      <w>devops</w>
       <w>dubbo</w>
       <w>flushall</w>
       <w>gitlab</w>
@@ -11,7 +13,9 @@
       <w>mergerequests</w>
       <w>mergerquest</w>
       <w>mongo</w>
+      <w>mongorestore</w>
       <w>mycat</w>
+      <w>printf</w>
       <w>reportsql</w>
       <w>stdin</w>
       <w>xargs</w>

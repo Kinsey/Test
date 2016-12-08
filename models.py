@@ -28,4 +28,3 @@ class Mergerequest:
         self.project = None
         self.num_of_commits = 0
 
-
