@@ -1,4 +1,6 @@
 #!/bin/bash
+# Author: wangjinze
+# Copyright: Hongtoo
 
 sync_init () {
   bak_date=`date +%Y%m%d`
