@@ -1,15 +1,35 @@
 #!/bin/bash
 
 sync_init () {
+  bak_date=`date +%Y%m%d`
+
+  ht_devops=/usr/local/ht_devops
+  dbsync=$ht_devops/dbsync
+  bak_data=$dbsync/bak_data
+  workspace=$dbsync/workspace
   rm -rf /usr/local/ht_devops/dbsync/workspace/*
 
-  mysql_data_file=$bak_data/mysql-$bak_date.tar.gz
-  mongo_data_file=$bak_data/mongo-$bak_date.tar.gz
+  mongo_init
+  mysql_init
+}
 
-  uncompress_file_to_workspace $mysql_data_file
+mongo_init () {
+  mongo_cmd='/root/mongodb/bin/mongo'
+  mongorestore_cmd='/root/mongodb/bin/mongorestore'
+
+  mongo_data_file=$bak_data/mongo-$bak_date.tar.gz
   uncompress_file_to_workspace $mongo_data_file
 
   mongo_update_scripts=`find update_scripts -name '*.js' -printf '%f\n' | sort | xargs `
+}
+
+mysql_init () {
+  mysql_user='root'
+  mysql_pwd='admin123'
+  mysql_cmd="/usr/bin/mysql -h $mysql_host -u $mysql_user -p$mysql_pwd -e"
+
+  mysql_data_file=$bak_data/mysql-$bak_date.tar.gz
+  uncompress_file_to_workspace $mysql_data_file
 
   #sort scripts by date nested in filename, asending
   mysql_update_scripts=`find update_scripts -name "*.sql" -printf "%f\n" | awk '{FS="_"; $0=$0;  print $NF"|"$0}' | sort | cut -d"|" -f2 | xargs`
@@ -40,7 +60,7 @@ mongo_sync_start () {
 
 import_mongo_data () {
   echo -n "importing mongodb data..."
-  cmd="mongorestore -h $mongo_host:$mongo_port --batchSize=10 --quiet $workspace/$bak_date --drop"
+  cmd="$mongorestore_cmd -h $mongo_host:$mongo_port --batchSize=10 --quiet $workspace/$bak_date --drop"
   `$cmd`
 
   check_status
@@ -51,7 +71,7 @@ exec_mongo_update_scripts () {
   for script in $mongo_update_scripts
   do
     echo -n "executing $script..."
-    cmd="mongo --quiet $mongo_host:$mongo_port/component update_scripts/$script"
+    cmd="$mongo_cmd --quiet $mongo_host:$mongo_port/component update_scripts/$script"
     `$cmd`
     check_status
   done
@@ -59,16 +79,17 @@ exec_mongo_update_scripts () {
 
 
 mysql_sync_start () {
-  mysql_user='root'
-  mysql_pwd='admin123'
-  mysql_cmd="mysql -h $mysql_host -u $mysql_user -p$mysql_pwd -e"
-
   drop_mysql_databases
   import_mysql_data
 
   if [ -n "$mysql_update_scripts" ];then
     exec_mysql_update_scripts
   fi
+
+  echo ""
+
+  # flush redis and restart mycat service
+  python flush_service.py $option
 }
 
 
@@ -93,7 +114,7 @@ import_mysql_data () {
 
   $mysql_cmd "source $workspace/$bak_date.sql"
 
-	check_status
+  check_status
 }
 
 
@@ -104,7 +125,7 @@ exec_mysql_update_scripts () {
      
     echo -n "executing $script..."   
     $mysql_cmd "source update_scripts/$script"
-    
+
     check_status
   done
 }
@@ -142,7 +163,6 @@ check_status () {
   fi    
 }
 
-
 option="${1}"
 case ${option} in
    dev01) mysql_host="dev01.demo.com"
@@ -169,13 +189,6 @@ case ${option} in
       ;;
 esac
 
-bak_date=`date +%Y%m%d`
-
-ht_devops=/usr/local/ht_devops
-dbsync=$ht_devops/dbsync
-bak_data=$dbsync/bak_data
-workspace=$dbsync/workspace
-
 sync_init
 
 print_sync_detail
@@ -184,8 +197,4 @@ prompt_for_confirmation
 mongo_sync_start
 mysql_sync_start
 
-echo ""
-
-# flush redis and restart mycat service
-python flush_service.py $option
 
