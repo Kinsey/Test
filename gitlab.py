@@ -29,9 +29,9 @@ class Gitlab:
         )
         resp = requests.post('{0}/{1}/repository/tags'.format(self.projects_url, tag.prj_id), params=params)
         if resp.status_code == 201:
-            print 'tag created, name={0}, target_branch={1}, project_name={2}'.format(tag.name, tag.ref, tag.prj_name)
+            print('tag created, name={0}, target_branch={1}, project_name={2}'.format(tag.name, tag.ref, tag.prj_name))
         else:
-            print resp.text + " project_name=" + tag.prj_name + " response_code=" + str(resp.status_code)
+            print(resp.text + " project_name=" + tag.prj_name + " response_code=" + str(resp.status_code))
             # TODO
 
     def is_tag_exists(self, tag):
@@ -91,7 +91,7 @@ class Gitlab:
             num_of_commits =  len(resp.json())
         else:
             # TODO
-            print str(resp.status_code) + ' ' + resp.text
+            print(str(resp.status_code) + ' ' + resp.text)
             num_of_commits = -1
         return num_of_commits
 

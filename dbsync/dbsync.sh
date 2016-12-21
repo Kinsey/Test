@@ -7,7 +7,7 @@ sync_init () {
 
   ht_devops=/usr/local/ht_devops
   dbsync=$ht_devops/dbsync
-  bak_data=$dbsync/bak_data
+  bak_data=$dbsync/bak_data/ali
   workspace=$dbsync/workspace
   rm -rf /usr/local/ht_devops/dbsync/workspace/*
 
