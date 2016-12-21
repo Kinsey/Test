@@ -1,6 +1,6 @@
 #!/bin/bash
-# Author: wangjinze
-# Copyright: Hongtoo
+# Author: wangjz@aigongzuo.com
+# Copyright: Hongtoo Inc.
 
 sync_init () {
   bak_date=`date +%Y%m%d`
@@ -20,6 +20,7 @@ mongo_init () {
   mongo_port=27017
 
   mongo_cmd='/root/mongodb/bin/mongo'
+  mongodump_cmd='/root/mongodb/bin/mongodump'
   mongorestore_cmd='/root/mongodb/bin/mongorestore'
 
   mongo_data_file=$bak_data/mongo-$bak_date.tar.gz
@@ -31,8 +32,10 @@ mongo_init () {
 
 mysql_init () {
   mysql_user='root'
-  mysql_pwd='admin123'
-  mysql_cmd="/usr/bin/mysql -h $mysql_host -u $mysql_user -p$mysql_pwd -e"
+  mysql_cmd="/usr/bin/mysql -h $mysql_host -u $mysql_user -e"
+
+  # set MYSQL_PWD in env to suppress message "Warning: Using a password on the command line interface can be insecure"
+  export MYSQL_PWD='admin123'
 
   mysql_data_file=$bak_data/mysql-$bak_date.tar.gz
   uncompress_file_to_workspace $mysql_data_file
@@ -55,8 +58,25 @@ uncompress_file_to_workspace () {
 
 
 drop_and_update_mongo () {
+  backup_mongo
   import_mongo_data
   exec_mongo_update_scripts
+}
+
+
+backup_mongo () {
+ echo -n "backuping mongodb on $mongo_host..."
+
+  cur_date=`date +%Y%m%d`
+
+  backup_data_folder=bak_data/$environment/mongo-$cur_date
+  backup_tar_file=bak_data/$environment/mongo-$cur_date.tar.gz
+
+  cmd="$mongodump_cmd --quiet -h $mongo_host:$mongo_port -o $backup_data_folder"
+  `$cmd`
+  check_status
+
+  archive $backup_data_folder $backup_tar_file
 }
 
 
@@ -83,10 +103,27 @@ exec_mongo_update_scripts () {
 
 
 drop_and_update_mysql () {
+  backup_mysql
   drop_mysql_databases
   import_mysql_data
   exec_mysql_update_scripts
   flush_service
+}
+
+
+backup_mysql () {
+  echo -n "backuping mysql on $mysql_host..."
+
+  cur_date=`date +%Y%m%d`
+
+  backup_sql_file=bak_data/$environment/mysql-$cur_date.sql
+  backup_tar_file=bak_data/$environment/mysql-$cur_date.tar.gz
+
+  cmd="mysqldump -h$mysql_host -u$mysql_user --all-databases > $backup_sql_file"
+  mysqldump -h$mysql_host -u$mysql_user --all-databases > $backup_sql_file
+  check_status
+
+  archive $backup_sql_file $backup_tar_file
 }
 
 
@@ -132,7 +169,20 @@ exec_mysql_update_scripts () {
 
 flush_service () {
   # flush redis and restart mycat service
-  python flush_service.py $option
+  python flush_service.py $environment
+}
+
+
+archive () {
+  src=$1
+  dest=$2
+
+  echo -n "archiving backup data..."
+  cmd="tar -zcf $dest $src"
+  tar -zcf $dest $src
+  check_status
+
+  rm -rf $src
 }
 
 
@@ -193,10 +243,10 @@ show_usage () {
 }
 
 
-option="${1}"
+environment="${1}"
 run_type="${2}"
 
-case ${option} in
+case ${environment} in
    dev01) mysql_host="dev01.demo.com"
           mongo_host="dev01.demo.com"
       ;;
@@ -234,19 +284,19 @@ case ${run_type} in
           drop_and_update_mongo
       ;;
    drop_and_update_mysql)
-           prompt_for_confirmation
-           drop_and_update_mysql
+          prompt_for_confirmation
+          drop_and_update_mysql
       ;;
    update_mongo)
-           prompt_for_confirmation
-           exec_mongo_update_scripts
+          prompt_for_confirmation
+          exec_mongo_update_scripts
       ;;
    update_mysql)
-           prompt_for_confirmation
-           exec_mysql_update_scripts
+          prompt_for_confirmation
+          exec_mysql_update_scripts
       ;;
    flush_service)
-           flush_service
+          flush_service
       ;;
    *)
       show_usage
