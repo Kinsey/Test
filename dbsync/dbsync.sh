@@ -106,9 +106,23 @@ drop_and_update_mysql () {
   backup_mysql
   drop_mysql_databases
   import_mysql_data
+  drop_mysql_private_databases
   exec_mysql_update_scripts
   flush_service
 }
+
+
+drop_mysql_private_databases() {
+  echo -n "dropping mysql private databases..."
+
+  #clear all databases prefixed with agz_ and database app_platform_config
+  for db in `$mysql_cmd "show databases" | grep -v 'tpl' | grep -E '(agz_|app_platform_config)' `
+  do
+         $mysql_cmd "drop database if exists $db;"
+  done
+  echo "ok"
+}
+
 
 
 backup_mysql () {
