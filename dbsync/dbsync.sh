@@ -20,8 +20,13 @@ mongo_init () {
   mongo_port=27017
 
   mongo_cmd='/root/mongodb/bin/mongo'
-  mongodump_cmd='/root/mongodb/bin/mongodump'
-  mongorestore_cmd='/root/mongodb/bin/mongorestore'
+ # mongodump_cmd='/root/mongodb/bin/mongodump'
+ # mongorestore_cmd='/root/mongodb/bin/mongorestore'
+
+
+ # mongo_cmd='mongo'
+  mongodump_cmd='mongodump'
+  mongorestore_cmd='mongorestore'
 
   mongo_data_file=$bak_data/mongo-$bak_date.tar.gz
   uncompress_file_to_workspace $mongo_data_file
@@ -53,7 +58,7 @@ uncompress_file_to_workspace () {
   if [ $? -ne 0 ];then
     echo "uncompress file $file_name failed"
     exit -1
-  fi  
+  fi
 }
 
 
@@ -116,13 +121,12 @@ drop_mysql_private_databases() {
   echo -n "dropping mysql private databases..."
 
   #clear all databases prefixed with agz_ and database app_platform_config
-  for db in `$mysql_cmd "show databases" | grep -v 'tpl' | grep -E '(agz_|app_platform_config)' `
+  for db in `$mysql_cmd "show databases" | grep -v 'tpl' | grep -v 'agz_platform_1' | grep 'agz_' `
   do
          $mysql_cmd "drop database if exists $db;"
   done
   echo "ok"
 }
-
 
 
 backup_mysql () {
@@ -193,7 +197,7 @@ archive () {
 
   echo -n "archiving backup data..."
   cmd="tar -zcf $dest $src"
-  tar -zcf $dest $src
+  tar -zcPf $dest $src
   check_status
 
   rm -rf $src
@@ -241,7 +245,7 @@ check_status () {
   else
     echo "command \"$cmd\" failed to execute"
     exit -1
-  fi    
+  fi
 }
 
 
@@ -268,7 +272,7 @@ case ${environment} in
           mongo_host="mongo02.demo.com"
       ;;
    lb01)  mysql_host="mysql03.demo.com"
-          mongo_host="IM03.demo.com"
+          mongo_host="IM01.demo.com"
       ;;
    cp01)  mysql_host="mysql01.demo.com"
           mongo_host="mongo01.demo.com"
