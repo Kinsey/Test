@@ -105,10 +105,6 @@ exec_mysql_update_scripts () {
 backup_file() {
     project_folder='/data/projects/ali'
     file_list=(agz-business.zip agz-message.zip agz_web_design.war agz_web_runtime.war)
-#    cp $project_folder/agz-business.zip $bak_data/agz-business-$cur_timestamp.zip
-#    cp $project_folder/agz-message.zip $bak_data/agz-message-$cur_timestamp.zip
-#    cp $project_folder/agz_web_design.war $bak_data/agz_web_design-$cur_timestamp.war
-#    cp $project_folder/agz_web_runtime.war $bak_data/agz_web_runtime-$cur_timestamp.war
 
    for(( i=0;i<${#file_list[@]};i++))
       do
