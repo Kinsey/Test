@@ -2,9 +2,8 @@
 # Author: wangjz@aigongzuo.com
 # Copyright: Hongtoo Inc.
 
-sync_init () {
-
-  mysql_host="mysql02.agz.com"
+init () {
+  mysql_host="mysql01.agz.com"
   mongo_host="mongo01.agz.com"
 
   bak_date=`date +%Y%m%d`
@@ -184,13 +183,13 @@ show_usage () {
     echo "  update_mongo        execute mongo update scripts"
     echo "  update_mysql        execute mysql update scripts"
     echo "  backup_all          execute backup_file, backup_mongo, backup_mysql in sequence"
-    echo "  run_all             execute backup_file, backup_mongo, update_mongo, backup_mysql, update_mysql in sequence"
+    echo "  run_all             execute backup_file, backup_mongo, backup_mysql, update_mongo, update_mysql in sequence"
 }
 
 
 run_type="${1}"
 
-sync_init
+init
 
 case ${run_type} in
    backup_mysql)
@@ -219,8 +218,8 @@ case ${run_type} in
           prompt_for_confirmation
           backup_file
           backup_mongo
-          exec_mongo_update_scripts
           backup_mysql
+          exec_mongo_update_scripts
           exec_mysql_update_scripts
       ;;
    *)
